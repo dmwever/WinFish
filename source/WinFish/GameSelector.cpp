@@ -405,8 +405,7 @@ void Sexy::GameSelector::ButtonDepress(int theId)
 	if (anIsGameMode && (mApp->mAPBridge == NULL || mApp->mAPBridge->GetState() != APBridge::AP_SLOT_CONNECTED))
 	{
 		mApp->DoDialog(DIALOG_INFO, true, "Not Connected",
-			"You need to be connected to your Archipelago slot to play. The connection status is shown at the bottom "
-			"of the screen; click \"If this is not you\" to change the server or slot.",
+			"You need to be connected to your Archipelago slot to play.",
 			"OK", Dialog::BUTTONS_FOOTER);
 		return;
 	}
