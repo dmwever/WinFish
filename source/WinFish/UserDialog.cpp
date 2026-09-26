@@ -33,18 +33,18 @@ Sexy::UserDialog::UserDialog(WinFishApp* theApp, bool transferShells)
 	else
 		mScrollbarWidget = new ScrollbarWidget(0, mListWidget);
 
-	mRenameButton = MakeDialogButton(0, this, "Rename", FONT_JUNGLEFEVER12OUTLINE);
+	mRenameButton = MakeDialogButton(0, this, "Edit", FONT_JUNGLEFEVER12OUTLINE); // edits the connection
 	mDeleteButton = MakeDialogButton(1, this, "Delete", FONT_JUNGLEFEVER12OUTLINE);
-	mArchipelagoButton = MakeDialogButton(2, this, "Archipelago", FONT_JUNGLEFEVER12OUTLINE);
 	mEditWidget = MakeEditWidget(0, this);
 	mEditWidget->SetText("", true);
 	mEditWidget->mCursorPos = mEditWidget->mString.size();
 	mListWidget->mScrollbar = mScrollbarWidget;
 
 	if (!mTransferShells)
-		mListWidget->AddLine("(Create a New User)", false);
+		mListWidget->AddLine("(New Connection)", false);
 
-	if (mApp->mCurrentProfile && !mTransferShells)
+	// Only Archipelago profiles are listed; profiles from before the mod stay on disk but hidden.
+	if (mApp->mCurrentProfile && mApp->mCurrentProfile->HasAPConnection() && !mTransferShells)
 		mListWidget->SetSelect(mListWidget->AddLine(mApp->mCurrentProfile->mUserName, false));
 
 
@@ -52,7 +52,11 @@ Sexy::UserDialog::UserDialog(WinFishApp* theApp, bool transferShells)
 		it != mApp->mProfileMgr->mProfilesMap->end(); ++it)
 	{
 		UserProfile* aProf = &it->second;
-		if(aProf != mApp->mCurrentProfile)
+		if (aProf == mApp->mCurrentProfile)
+			continue;
+		// AP settings live in user%d.dat, which isn't loaded until a profile is used.
+		aProf->LoadFromMemory();
+		if (aProf->HasAPConnection())
 			mListWidget->AddLine(aProf->mUserName, false);
 	}
 
@@ -64,7 +68,6 @@ Sexy::UserDialog::UserDialog(WinFishApp* theApp, bool transferShells)
 	{
 		mRenameButton->SetVisible(false);
 		mDeleteButton->SetVisible(false);
-		mArchipelagoButton->SetVisible(false);
 	}
 }
 
@@ -74,7 +77,6 @@ Sexy::UserDialog::~UserDialog()
 	delete mScrollbarWidget;
 	delete mRenameButton;
 	delete mDeleteButton;
-	delete mArchipelagoButton;
 	delete mEditWidget;
 }
 
@@ -103,7 +105,6 @@ void Sexy::UserDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mScrollbarWidget);
 	theWidgetManager->AddWidget(mDeleteButton);
 	theWidgetManager->AddWidget(mRenameButton);
-	theWidgetManager->AddWidget(mArchipelagoButton);
 	theWidgetManager->AddWidget(mEditWidget);
 	if (mTransferShells)
 		theWidgetManager->SetFocus(mEditWidget);
@@ -116,7 +117,6 @@ void Sexy::UserDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mScrollbarWidget);
 	theWidgetManager->RemoveWidget(mDeleteButton);
 	theWidgetManager->RemoveWidget(mRenameButton);
-	theWidgetManager->RemoveWidget(mArchipelagoButton);
 	theWidgetManager->RemoveWidget(mEditWidget);
 }
 
@@ -137,15 +137,11 @@ void Sexy::UserDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mRenameButton;
 	mRenameButton->Layout(4355, mYesButton);
 	mDeleteButton->Layout(4355, mNoButton);
-	// Full-width row above Rename/Delete; GetPreferredHeight reserves the extra button height.
-	mArchipelagoButton->Layout(LAY_SameLeft | LAY_SameHeight | LAY_Above, mRenameButton);
-	mArchipelagoButton->Layout(LAY_GrowToRight, mDeleteButton);
 	mEditWidget->Layout(464, mYesButton, aXPos + 180, -10, aWidth - 190, 24);
 }
 int Sexy::UserDialog::GetPreferredHeight(int theWidth)
 {
-	int anExtra = mTransferShells ? 0 : mButtonHeight;
-	return MoneyDialog::GetPreferredHeight(theWidth) + 190 + anExtra;
+	return MoneyDialog::GetPreferredHeight(theWidth) + 190;
 }
 
 void Sexy::UserDialog::ButtonPress(int theId)
@@ -162,11 +158,9 @@ void Sexy::UserDialog::ButtonDepress(int theId)
 	if (aStr.size() > 0)
 	{
 		if (theId == 0)
-			mApp->DoRenameDialog(aStr);
+			mApp->DoArchipelagoDialog(aStr);
 		else if (theId == 1)
 			mApp->DoDeleteWarningDialog(aStr);
-		else if (theId == 2)
-			mApp->DoArchipelagoDialog(aStr);
 	}
 }
 
@@ -179,7 +173,7 @@ void Sexy::UserDialog::ListClicked(int theId, int theIdx, int theClickCount)
 	}
 	if (theIdx == 0)
 	{
-		mApp->DoNewUserDialog();
+		mApp->DoArchipelagoDialog("");
 		return;
 	}
 	mListWidget->SetSelect(theIdx);

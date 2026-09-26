@@ -477,6 +477,9 @@ void Sexy::WinFishApp::Init()
 			if (mCurrentProfile == NULL)
 				mCurrentProfile = mProfileMgr->GetFirstUserProfile();
 
+			if (!anIsScreenSaver && (mCurrentProfile == NULL || !mCurrentProfile->HasAPConnection()))
+				mCurrentProfile = mProfileMgr->GetFirstAPProfile();
+
 			if (!anIsScreenSaver || mCurrentProfile != NULL)
 			{
 				mMaxExecutions = GetInteger("MaxExecutions", 0);
@@ -1939,7 +1942,7 @@ void Sexy::WinFishApp::SwitchToGameSelector()
 
 	if (!mCurrentProfile)
 	{
-		DoNewUserDialog();
+		DoArchipelagoDialog("");
 	}
 	if (CheckTrialEnded())
 		DoTrialVersionExpiredDialog();
@@ -2830,11 +2833,11 @@ void Sexy::WinFishApp::DeleteUser(bool deleteUser)
 		SexyString aNextUserName = aDia->GetSelectedUserName();
 		mCurrentProfile = mProfileMgr->GetUserProfile(aNextUserName);
 		if (!mCurrentProfile)
-			mCurrentProfile = mProfileMgr->GetFirstUserProfile();
+			mCurrentProfile = mProfileMgr->GetFirstAPProfile();
 	}
 	mProfileMgr->SaveUsersDat();
 	if (!mCurrentProfile)
-		DoNewUserDialog();
+		DoArchipelagoDialog("");
 	mWidgetManager->MarkAllDirty();
 }
 
