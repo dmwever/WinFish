@@ -399,6 +399,17 @@ void Sexy::GameSelector::ButtonPress(int theId)
 void Sexy::GameSelector::ButtonDepress(int theId)
 {
 	mApp->mRelaxMode = false;
+
+	// Adventure (1), Virtual Tank (2), Time Trial (8) and Challenge (9) need a live Archipelago connection.
+	bool anIsGameMode = theId == 1 || theId == 2 || theId == 8 || theId == 9;
+	if (anIsGameMode && (mApp->mAPBridge == NULL || mApp->mAPBridge->GetState() != APBridge::AP_SLOT_CONNECTED))
+	{
+		mApp->DoDialog(DIALOG_INFO, true, "Not Connected",
+			"You need to be connected to your Archipelago slot to play. The connection status is shown at the bottom "
+			"of the screen; click \"If this is not you\" to change the server or slot.",
+			"OK", Dialog::BUTTONS_FOOTER);
+		return;
+	}
 	if (theId == 1)
 	{
 		mApp->mGameMode = GAMEMODE_ADVENTURE;
