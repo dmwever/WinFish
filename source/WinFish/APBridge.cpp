@@ -12,10 +12,6 @@ static const char* const AP_GAME_NAME = "Insaniquarium Deluxe";
 // Remote items from other worlds, our own world, and starting inventory.
 static const int AP_ITEMS_HANDLING = 0b111;
 
-// Mock content; must match worlds/insaniquarium items/items.py and locations/locations.py.
-static const int64_t AP_MOCK_LOCATION_ID = 1;
-static const int64_t AP_MOCK_ITEM_ID = 1;
-
 static std::string MakeServerUri(const std::string& theServer)
 {
 	if (theServer.find("://") != std::string::npos)
@@ -35,8 +31,6 @@ APBridge::APBridge(const std::string& theDataFolder, const std::string& theCertF
 	mState = AP_DISCONNECTED;
 	mSocketErrors = 0;
 	mSocketErrorsToReport = 1;
-	mHasMockItem = false;
-	mGoalSent = false;
 	mDataFolder = theDataFolder;
 	mCertFile = theCertFile;
 }
@@ -55,8 +49,6 @@ void APBridge::Connect(const std::string& theServer, const std::string& theSlot,
 	mPassword = thePassword;
 	mLastError.clear();
 	mSocketErrors = 0;
-	mHasMockItem = false;
-	mGoalSent = false;
 
 	std::string aUuid = ap_get_uuid(mDataFolder + "ap_uuid.txt", theServer);
 	std::string aUri = MakeServerUri(theServer);
@@ -87,25 +79,6 @@ void APBridge::Connect(const std::string& theServer, const std::string& theSlot,
 	{
 		mState = AP_SLOT_CONNECTED;
 		mLastError.clear();
-
-		// Mock loop: "complete" the mock location as soon as we log in. Resending on reconnect is harmless.
-		mClient->LocationChecks({ AP_MOCK_LOCATION_ID });
-	});
-
-	mClient->set_items_received_handler([this](const std::list<APClient::NetworkItem>& theItems)
-	{
-		for (const APClient::NetworkItem& anItem : theItems)
-		{
-			if (anItem.item == AP_MOCK_ITEM_ID)
-				mHasMockItem = true;
-		}
-
-		// The mock world's Victory only requires the mock item.
-		if (mHasMockItem && !mGoalSent)
-		{
-			mClient->StatusUpdate(APClient::ClientStatus::GOAL);
-			mGoalSent = true;
-		}
 	});
 
 	mClient->set_slot_refused_handler([this](const std::list<std::string>& theErrors)
@@ -145,8 +118,6 @@ std::string APBridge::GetStatusText() const
 	case AP_SLOT_CONNECTING:
 		return "Archipelago: logging in as " + mSlot + "...";
 	case AP_SLOT_CONNECTED:
-		if (mGoalSent)
-			return "Archipelago: connected as " + mSlot + " - mock item received, goal sent";
 		return "Archipelago: connected as " + mSlot;
 	case AP_SLOT_REFUSED:
 		return "Archipelago: refused (" + mLastError + ")";
