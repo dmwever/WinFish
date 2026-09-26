@@ -16,9 +16,11 @@ static const char* const gArchipelagoLabels[ArchipelagoDialog::NUM_EDITS] =
 	"PASSWORD",
 };
 
-Sexy::ArchipelagoDialog::ArchipelagoDialog(WinFishApp* theApp, const SexyString& theUserName, UserProfile* theProfile) :
-	MoneyDialog(theApp, IMAGE_DIALOG, IMAGE_DIALOGBUTTON, DIALOG_ARCHIPELAGO, true, "ARCHIPELAGO",
-		"Multiworld settings for " + theUserName + ".\nLeave the slot empty to play normally.", "", BUTTONS_OK_CANCEL)
+Sexy::ArchipelagoDialog::ArchipelagoDialog(WinFishApp* theApp, UserProfile* theProfile, const std::string& theDefaultServer) :
+	MoneyDialog(theApp, IMAGE_DIALOG, IMAGE_DIALOGBUTTON, DIALOG_ARCHIPELAGO, true,
+		theProfile ? "EDIT CONNECTION" : "NEW CONNECTION",
+		theProfile ? "Change the Archipelago server, slot or password for this profile." : "Enter the Archipelago server and slot to play.",
+		"", BUTTONS_OK_CANCEL)
 {
 	SetButtonFont(FONT_JUNGLEFEVER12OUTLINE);
 	SetHeaderFont(FONT_JUNGLEFEVER15OUTLINE);
@@ -27,14 +29,24 @@ Sexy::ArchipelagoDialog::ArchipelagoDialog(WinFishApp* theApp, const SexyString&
 	SetColor(COLOR_HEADER, Color(0xff, 200, 0));
 	SetColor(COLOR_LINES, Color::White);
 	SetColor(COLOR_BUTTON_TEXT, Color::White);
-	mUserName = theUserName;
+	mUserName = theProfile ? theProfile->mUserName : "";
 
-	const std::string* aValues[NUM_EDITS] = { &theProfile->mAPServer, &theProfile->mAPSlot, &theProfile->mAPPassword };
+	std::string aValues[NUM_EDITS];
+	if (theProfile)
+	{
+		aValues[EDIT_SERVER] = theProfile->mAPServer;
+		aValues[EDIT_SLOT] = theProfile->mAPSlot;
+		aValues[EDIT_PASSWORD] = theProfile->mAPPassword;
+	}
+	else
+		aValues[EDIT_SERVER] = theDefaultServer;
+
 	for (int i = 0; i < NUM_EDITS; i++)
 	{
 		mEditWidgets[i] = MakeEditWidget(i, this);
+		mEditWidgets[i]->SetFont(FONT_CONTINUUMBOLD12, 0);
 		mEditWidgets[i]->mMaxChars = 64;
-		mEditWidgets[i]->SetText(*aValues[i], true);
+		mEditWidgets[i]->SetText(aValues[i], true);
 		mEditWidgets[i]->mCursorPos = mEditWidgets[i]->mString.size();
 	}
 	mEditWidgets[EDIT_SLOT]->mMaxChars = 16; // Archipelago's slot name limit
@@ -58,7 +70,8 @@ void Sexy::ArchipelagoDialog::AddedToManager(WidgetManager* theWidgetManager)
 	MoneyDialog::AddedToManager(theWidgetManager);
 	for (int i = 0; i < NUM_EDITS; i++)
 		theWidgetManager->AddWidget(mEditWidgets[i]);
-	theWidgetManager->SetFocus(mEditWidgets[EDIT_SERVER]);
+	// A new connection arrives with the server prefilled, so start on the slot.
+	theWidgetManager->SetFocus(mEditWidgets[GetServer().empty() ? EDIT_SERVER : EDIT_SLOT]);
 }
 
 void Sexy::ArchipelagoDialog::RemovedFromManager(WidgetManager* theWidgetManager)
@@ -71,7 +84,6 @@ void Sexy::ArchipelagoDialog::RemovedFromManager(WidgetManager* theWidgetManager
 void Sexy::ArchipelagoDialog::Draw(Graphics* g)
 {
 	MoneyDialog::Draw(g);
-	g->SetFont(FONT_JUNGLEFEVER10OUTLINE);
 	g->SetColor(Color(0xff, 200, 0));
 	for (int i = 0; i < NUM_EDITS; i++)
 	{
@@ -110,9 +122,19 @@ void Sexy::ArchipelagoDialog::EditWidgetText(int theId, const SexyString& theStr
 		MoneyDialog::ButtonDepress(ID_YES);
 }
 
+std::string Sexy::ArchipelagoDialog::GetServer() const
+{
+	return Trim(mEditWidgets[EDIT_SERVER]->mString);
+}
+
+std::string Sexy::ArchipelagoDialog::GetSlot() const
+{
+	return Trim(mEditWidgets[EDIT_SLOT]->mString);
+}
+
 void Sexy::ArchipelagoDialog::ApplyTo(UserProfile* theProfile)
 {
-	theProfile->mAPServer = Trim(mEditWidgets[EDIT_SERVER]->mString);
-	theProfile->mAPSlot = Trim(mEditWidgets[EDIT_SLOT]->mString);
+	theProfile->mAPServer = GetServer();
+	theProfile->mAPSlot = GetSlot();
 	theProfile->mAPPassword = mEditWidgets[EDIT_PASSWORD]->mString;
 }

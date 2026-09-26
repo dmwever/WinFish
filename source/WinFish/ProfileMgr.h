@@ -74,6 +74,11 @@ namespace Sexy
 		int							GetAdventureScore(int theTank, int theLevel);
 		int							GetTimeTrialScore(int theTank);
 		int							GetChallengeScore(int theTank);
+
+		bool						HasAPConnection() const { return !mAPServer.empty() && !mAPSlot.empty(); }
+
+		// The profile name is the slot; the who-are-you list shows "Player1 @ localhost:38281".
+		SexyString					GetAPDisplayName() const;
 	};
 
 	typedef std::map<SexyString, UserProfile> UserProfilesMap;
@@ -92,6 +97,7 @@ namespace Sexy
 
 		UserProfile*				GetUserProfile(const SexyString& theProfileName);
 		UserProfile*				GetFirstUserProfile();
+		UserProfile*				GetFirstAPProfile();
 		void						SyncUsersDat(DataSync& theDataSync);
 		void						ReadUsersDat();
 		void						SaveUsersDat();

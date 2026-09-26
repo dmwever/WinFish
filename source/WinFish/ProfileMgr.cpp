@@ -74,6 +74,30 @@ UserProfile* Sexy::ProfileMgr::GetFirstUserProfile()
     return aFirstProfile;
 }
 
+UserProfile* Sexy::ProfileMgr::GetFirstAPProfile()
+{
+    UserProfile* aCurrentProfile = ((WinFishApp*)gSexyApp)->mCurrentProfile;
+    for (UserProfilesMap::iterator it = mProfilesMap->begin(); it != mProfilesMap->end(); ++it)
+    {
+        UserProfile* aProf = &it->second;
+        // AP settings live in user%d.dat; reload others, but keep the current profile's in-memory state.
+        if (aProf != aCurrentProfile)
+            aProf->LoadFromMemory();
+        if (aProf->HasAPConnection())
+        {
+            aProf->m0x40 = m0x14;
+            m0x14++;
+            return aProf;
+        }
+    }
+    return nullptr;
+}
+
+SexyString Sexy::UserProfile::GetAPDisplayName() const
+{
+    return mUserName + " @ " + mAPServer;
+}
+
 void Sexy::ProfileMgr::SyncUsersDat(DataSync& theDataSync)
 {
     DataWriter* aDW = theDataSync.mWriter;
@@ -162,7 +186,9 @@ UserProfile* Sexy::ProfileMgr::MakeNewUser(SexyString* theUserName)
 bool Sexy::ProfileMgr::RenameUser(SexyString& theOldUserName, SexyString& theNewUserName)
 {
     UserProfilesMap::iterator existingNewIt = mProfilesMap->lower_bound(theNewUserName);
-    if (existingNewIt != mProfilesMap->end() && _stricmp(existingNewIt->first.c_str(), theNewUserName.c_str()) == 0)
+    // Names compare case-insensitively; a case-only rename of the same profile (player1 -> Player1) is allowed.
+    if (existingNewIt != mProfilesMap->end() && _stricmp(existingNewIt->first.c_str(), theNewUserName.c_str()) == 0
+        && _stricmp(existingNewIt->first.c_str(), theOldUserName.c_str()) != 0)
         return false;
 
     UserProfilesMap::iterator oldIt = mProfilesMap->lower_bound(theOldUserName);

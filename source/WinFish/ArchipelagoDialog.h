@@ -10,7 +10,7 @@ namespace Sexy
 	class EditWidget;
 	class UserProfile;
 
-	// Edits the Archipelago server, slot and password of one profile.
+	// Creates a profile from a new Archipelago connection, or edits an existing profile's connection.
 	class ArchipelagoDialog : public MoneyDialog, public ButtonListener, public EditListener
 	{
 	public:
@@ -22,11 +22,12 @@ namespace Sexy
 			NUM_EDITS
 		};
 
-		SexyString				mUserName;
+		SexyString				mUserName;		// profile being edited; empty for a new connection
 		EditWidget*				mEditWidgets[NUM_EDITS];
 
 	public:
-		ArchipelagoDialog(WinFishApp* theApp, const SexyString& theUserName, UserProfile* theProfile);
+		// theProfile == NULL opens a new connection with theDefaultServer prefilled.
+		ArchipelagoDialog(WinFishApp* theApp, UserProfile* theProfile, const std::string& theDefaultServer);
 		virtual ~ArchipelagoDialog();
 
 		virtual void			AddedToManager(WidgetManager* theWidgetManager);
@@ -38,6 +39,10 @@ namespace Sexy
 		virtual void			ButtonPress(int theId);
 
 		virtual void			EditWidgetText(int theId, const SexyString& theString);
+
+		bool					IsNewConnection() const { return mUserName.empty(); }
+		std::string				GetServer() const;
+		std::string				GetSlot() const;
 
 		// Copies the (trimmed) fields into theProfile.
 		void					ApplyTo(UserProfile* theProfile);

@@ -394,8 +394,6 @@ void Sexy::WinFishApp::Init()
 		MkDir(GetAppDataFolder());
 		AllowAllAccess(GetAppDataFolder());
 		InitUserDirectories("userdata");
-		//	TODO WinFishAppMoveOldUserdataFolder
-		//	Migrate userdata from game folder to program data
 	}
 
 	if (!anIsScreenSaver)
@@ -786,6 +784,9 @@ void Sexy::WinFishApp::ButtonDepress(int theId)
 					break;
 				case 3000 + DIALOG_GIVE_SHELLS:
 					ApplyGiveShells(false);
+					break;
+				case 3000 + DIALOG_ARCHIPELAGO:
+					ApplyArchipelagoDialog(false);
 					break;
 				default:
 					KillDialog(anIdVar1);
@@ -2851,12 +2852,23 @@ void Sexy::WinFishApp::DoRenameDialog(SexyString theUserName)
 
 void Sexy::WinFishApp::DoArchipelagoDialog(const SexyString& theUserName)
 {
-	UserProfile* aProf = mProfileMgr->GetUserProfile(theUserName);
-	if (aProf == NULL)
-		return;
+	// An empty name opens a new connection; otherwise edit that profile's connection.
+	UserProfile* aProf = NULL;
+	if (!theUserName.empty())
+	{
+		// Use the in-memory current profile rather than reloading it from disk.
+		if (mCurrentProfile != NULL && mCurrentProfile->mUserName == theUserName)
+			aProf = mCurrentProfile;
+		else
+			aProf = mProfileMgr->GetUserProfile(theUserName);
+		if (aProf == NULL)
+			return;
+	}
+
+	std::string aDefaultServer = mCurrentProfile != NULL ? mCurrentProfile->mAPServer : "";
 
 	KillDialog(DIALOG_ARCHIPELAGO);
-	ArchipelagoDialog* aDia = new ArchipelagoDialog(this, theUserName, aProf);
+	ArchipelagoDialog* aDia = new ArchipelagoDialog(this, aProf, aDefaultServer);
 	int aPrefHght = aDia->GetPreferredHeight(420);
 	aDia->Resize((mWidth - 420) / 2, (mHeight - aPrefHght) / 2, 420, aPrefHght);
 	AddDialog(DIALOG_ARCHIPELAGO, aDia);
@@ -2868,17 +2880,82 @@ void Sexy::WinFishApp::ApplyArchipelagoDialog(bool doApply)
 	if (aDia == NULL)
 		return;
 
-	if (doApply)
+	if (!doApply)
 	{
-		UserProfile* aProf = mProfileMgr->GetUserProfile(aDia->mUserName);
-		if (aProf != NULL)
+		// Every profile is an AP profile, so there's nothing to fall back to without one.
+		if (mCurrentProfile == NULL)
 		{
-			// UpdateArchipelago notices the change and reconnects if this is the current profile.
-			aDia->ApplyTo(aProf);
-			aProf->Save();
+			DoDialog(DIALOG_INFO, true, "Connection Required",
+				"Insaniquarium Archipelago needs a connection to an Archipelago server. Please enter your server and slot.",
+				"OK", Dialog::BUTTONS_FOOTER);
+			return;
 		}
+		KillDialog(DIALOG_ARCHIPELAGO);
+		return;
 	}
+
+	std::string aServer = aDia->GetServer();
+	std::string aSlot = aDia->GetSlot();
+	if (aServer.empty() || aSlot.empty())
+	{
+		DoDialog(DIALOG_INFO, true, "Missing Details", "Please enter both the server and your slot name.", "OK", Dialog::BUTTONS_FOOTER);
+		return;
+	}
+
+	// The profile is named after the slot; the server only appears in the who-are-you list.
+	SexyString aNewName = aSlot;
+	UserProfile* aProf = NULL;
+
+	if (aDia->IsNewConnection())
+	{
+		aProf = mProfileMgr->MakeNewUser(&aNewName);
+		if (aProf == NULL)
+		{
+			DoDialog(DIALOG_INFO, true, "Already Added",
+				"There is already a profile with this slot name. Select it from the list instead.",
+				"OK", Dialog::BUTTONS_FOOTER);
+			return;
+		}
+		mCurrentProfile = aProf;
+		KillDialog(DIALOG_USER_DIALOG);
+	}
+	else
+	{
+		SexyString anOldName = aDia->mUserName;
+		bool isCurrent = mCurrentProfile != NULL && mCurrentProfile->mUserName == anOldName;
+
+		if (aNewName != anOldName)
+		{
+			// RenameUser copies the in-memory profile to a new map entry, so re-find it afterwards.
+			if (!mProfileMgr->RenameUser(anOldName, aNewName))
+			{
+				DoDialog(DIALOG_INFO, true, "Already Added",
+					"There is already a profile with this slot name.", "OK", Dialog::BUTTONS_FOOTER);
+				return;
+			}
+
+			UserDialog* aUserDia = (UserDialog*)GetDialog(DIALOG_USER_DIALOG);
+			if (aUserDia != NULL && aUserDia->mListWidget->mSelectIdx > 0)
+				aUserDia->mListWidget->SetLine(aUserDia->mListWidget->mSelectIdx, aNewName);
+		}
+
+		UserProfilesMap::iterator anIt = mProfileMgr->mProfilesMap->find(aNewName);
+		if (anIt == mProfileMgr->mProfilesMap->end())
+		{
+			KillDialog(DIALOG_ARCHIPELAGO);
+			return;
+		}
+		aProf = &anIt->second;
+		if (isCurrent)
+			mCurrentProfile = aProf;
+	}
+
+	// UpdateArchipelago notices the new settings and reconnects if this is the current profile.
+	aDia->ApplyTo(aProf);
+	aProf->Save();
+	mProfileMgr->SaveUsersDat();
 	KillDialog(DIALOG_ARCHIPELAGO);
+	mWidgetManager->MarkAllDirty();
 }
 
 void Sexy::WinFishApp::UserDialogOkPressed(bool applyChanges)
