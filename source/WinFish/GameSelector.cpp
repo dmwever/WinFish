@@ -475,7 +475,7 @@ void Sexy::GameSelector::DrawMerylSpeak(Graphics* g, int theHoverId, int theAlph
 	SexyString anUserName = "";
 	if (aProf)
 	{
-		anUserName = aProf->mUserName;
+		anUserName = aProf->GetDisplayName();
 		aTank = aProf->mTank;
 		aLevel = aProf->mLevel;
 		aFinishedGame = aProf->mFinishedGame;

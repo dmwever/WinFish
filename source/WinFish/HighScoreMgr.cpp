@@ -210,7 +210,7 @@ void Sexy::HighScoreMgr::RecordAdventureHighScore(int theTank, int theLevel, Use
         theMaxEntries = 3;
     }
     theUser->WriteAdventureScore(theTank, theLevel, theScore);
-    AddScoreToList(&mAdventureScores[anIdx], theUser->mUserName, theScore, theMaxEntries, sortDescending, true);
+    AddScoreToList(&mAdventureScores[anIdx], theUser->GetDisplayName(), theScore, theMaxEntries, sortDescending, true);
 }
 
 void Sexy::HighScoreMgr::AddScoreToList(HighScoreList* theList, SexyString& theUserName, int theScore, int theMaxEntries, bool sortDescending, bool forceReload)
@@ -249,7 +249,7 @@ void Sexy::HighScoreMgr::RecordTimeTrialHighScore(int theTank, UserProfile* theU
     if (anIdx < 4)
     {
         theUser->WriteTimeTrialScore(theTank, theScore);
-        AddScoreToList(&mTimeTrialScores[anIdx], theUser->mUserName, theScore, 5, 1, true);
+        AddScoreToList(&mTimeTrialScores[anIdx], theUser->GetDisplayName(), theScore, 5, 1, true);
     }
 }
 
@@ -259,7 +259,7 @@ void Sexy::HighScoreMgr::RecordChallengeHighScore(int theTank, UserProfile* theU
     if (anIdx < 4)
     {
         theUser->WriteChallengeScore(theTank, theScore);
-        AddScoreToList(&mChallengeScores[anIdx], theUser->mUserName, theScore, 5, false, true);
+        AddScoreToList(&mChallengeScores[anIdx], theUser->GetDisplayName(), theScore, 5, false, true);
     }
 }
 

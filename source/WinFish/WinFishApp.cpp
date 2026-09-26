@@ -2815,7 +2815,7 @@ void Sexy::WinFishApp::DeleteUser(bool deleteUser)
 
 	SexyString aSelUserName = aDia->GetSelectedUserName();
 
-	if (_stricmp(aUserName.c_str(), aSelUserName.c_str()) == 0)
+	if (aUserName == aSelUserName)
 		mCurrentProfile = nullptr;
 	mProfileMgr->DeleteUser(aSelUserName);
 	int aSelIdx = aDia->mListWidget->mSelectIdx;
@@ -2902,8 +2902,7 @@ void Sexy::WinFishApp::ApplyArchipelagoDialog(bool doApply)
 		return;
 	}
 
-	// The profile is named after the slot; the server only appears in the who-are-you list.
-	SexyString aNewName = aSlot;
+	SexyString aNewName = UserProfile::MakeAPProfileKey(aSlot, aServer);
 	UserProfile* aProf = NULL;
 
 	if (aDia->IsNewConnection())
@@ -2912,7 +2911,7 @@ void Sexy::WinFishApp::ApplyArchipelagoDialog(bool doApply)
 		if (aProf == NULL)
 		{
 			DoDialog(DIALOG_INFO, true, "Already Added",
-				"There is already a profile with this slot name. Select it from the list instead.",
+				"There is already a profile for this slot and server. Select it from the list instead.",
 				"OK", Dialog::BUTTONS_FOOTER);
 			return;
 		}
@@ -2930,7 +2929,7 @@ void Sexy::WinFishApp::ApplyArchipelagoDialog(bool doApply)
 			if (!mProfileMgr->RenameUser(anOldName, aNewName))
 			{
 				DoDialog(DIALOG_INFO, true, "Already Added",
-					"There is already a profile with this slot name.", "OK", Dialog::BUTTONS_FOOTER);
+					"There is already a profile for this slot and server.", "OK", Dialog::BUTTONS_FOOTER);
 				return;
 			}
 

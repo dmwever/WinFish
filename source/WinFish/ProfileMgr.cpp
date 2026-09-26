@@ -93,9 +93,14 @@ UserProfile* Sexy::ProfileMgr::GetFirstAPProfile()
     return nullptr;
 }
 
-SexyString Sexy::UserProfile::GetAPDisplayName() const
+SexyString Sexy::UserProfile::MakeAPProfileKey(const std::string& theSlot, const std::string& theServer)
 {
-    return mUserName + " @ " + mAPServer;
+    return theSlot + " @ " + theServer;
+}
+
+SexyString Sexy::UserProfile::GetDisplayName() const
+{
+    return HasAPConnection() ? mAPSlot : mUserName;
 }
 
 void Sexy::ProfileMgr::SyncUsersDat(DataSync& theDataSync)
@@ -154,15 +159,14 @@ void Sexy::ProfileMgr::SaveUsersDat()
     gSexyApp->WriteBytesToFile(aPath, aDW.mMemoryHandle, aDW.mMemoryPosition);
 }
 
+// Profile names compare case-sensitively, like Archipelago slot names. The original game used _stricmp
+// against the lower_bound entry only, which caught case-variant duplicates only some of the time.
 UserProfile* Sexy::ProfileMgr::InsertProfile(UserProfile* theProfile)
 {
-    UserProfilesMap::iterator it = mProfilesMap->lower_bound(theProfile->mUserName);
-
-    if (it != mProfilesMap->end() && _stricmp(it->first.c_str(), theProfile->mUserName.c_str()) == 0)
+    std::pair<UserProfilesMap::iterator, bool> aResult = mProfilesMap->insert(std::make_pair(theProfile->mUserName, *theProfile));
+    if (!aResult.second)
         return nullptr;
-
-    UserProfilesMap::iterator aNewIt = mProfilesMap->insert(it, std::make_pair(theProfile->mUserName, *theProfile));
-    return &aNewIt->second;
+    return &aResult.first->second;
 }
 
 UserProfile* Sexy::ProfileMgr::MakeNewUser(SexyString* theUserName)
@@ -185,14 +189,11 @@ UserProfile* Sexy::ProfileMgr::MakeNewUser(SexyString* theUserName)
 
 bool Sexy::ProfileMgr::RenameUser(SexyString& theOldUserName, SexyString& theNewUserName)
 {
-    UserProfilesMap::iterator existingNewIt = mProfilesMap->lower_bound(theNewUserName);
-    // Names compare case-insensitively; a case-only rename of the same profile (player1 -> Player1) is allowed.
-    if (existingNewIt != mProfilesMap->end() && _stricmp(existingNewIt->first.c_str(), theNewUserName.c_str()) == 0
-        && _stricmp(existingNewIt->first.c_str(), theOldUserName.c_str()) != 0)
+    if (mProfilesMap->find(theNewUserName) != mProfilesMap->end())
         return false;
 
-    UserProfilesMap::iterator oldIt = mProfilesMap->lower_bound(theOldUserName);
-    if (oldIt == mProfilesMap->end() || _stricmp(oldIt->first.c_str(), theOldUserName.c_str()) != 0)
+    UserProfilesMap::iterator oldIt = mProfilesMap->find(theOldUserName);
+    if (oldIt == mProfilesMap->end())
         return false;
 
     UserProfile anOldProf = oldIt->second;
@@ -207,8 +208,8 @@ bool Sexy::ProfileMgr::RenameUser(SexyString& theOldUserName, SexyString& theNew
 
 bool Sexy::ProfileMgr::DeleteUser(SexyString& theUserName)
 {
-    UserProfilesMap::iterator existingNewIt = mProfilesMap->lower_bound(theUserName);
-    if (existingNewIt != mProfilesMap->end() && _stricmp(existingNewIt->first.c_str(), theUserName.c_str()) == 0)
+    UserProfilesMap::iterator existingNewIt = mProfilesMap->find(theUserName);
+    if (existingNewIt != mProfilesMap->end())
     {
         existingNewIt->second.DeleteUserAppData();
         mProfilesMap->erase(existingNewIt);

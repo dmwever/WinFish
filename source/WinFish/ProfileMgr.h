@@ -77,8 +77,8 @@ namespace Sexy
 
 		bool						HasAPConnection() const { return !mAPServer.empty() && !mAPSlot.empty(); }
 
-		// The profile name is the slot; the who-are-you list shows "Player1 @ localhost:38281".
-		SexyString					GetAPDisplayName() const;
+		static SexyString			MakeAPProfileKey(const std::string& theSlot, const std::string& theServer);
+		SexyString					GetDisplayName() const;
 	};
 
 	typedef std::map<SexyString, UserProfile> UserProfilesMap;
