@@ -455,3 +455,5 @@ sounds/
 UnusedStuff/
 # Vendored websocketpp has a source folder named debug/
 !source/apclientpp/websocketpp/websocketpp/transport/debug/
+# Visual Studio backups made when saving files it had open
+enc_temp_folder/
