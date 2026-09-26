@@ -100,6 +100,7 @@ void APBridge::Connect(const std::string& theServer, const std::string& theSlot,
 				mHasMockItem = true;
 		}
 
+		// The mock world's Victory only requires the mock item.
 		if (mHasMockItem && !mGoalSent)
 		{
 			mClient->StatusUpdate(APClient::ClientStatus::GOAL);
