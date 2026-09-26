@@ -42,6 +42,8 @@ namespace Sexy
 	private:
 		APClient* mClient;
 		State mState;
+		int mSocketErrors;			// consecutive failed connection attempts
+		int mSocketErrorsToReport;	// failures before the status line says "can't reach"
 		std::string mDataFolder;
 		std::string mCertFile;
 		std::string mServer;

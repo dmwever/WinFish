@@ -12,10 +12,25 @@ static const char* const AP_GAME_NAME = "Insaniquarium Deluxe";
 // Remote items from other worlds, our own world, and starting inventory.
 static const int AP_ITEMS_HANDLING = 0b111;
 
+static std::string MakeServerUri(const std::string& theServer)
+{
+	if (theServer.find("://") != std::string::npos)
+		return theServer;
+
+	std::string aHost = theServer.substr(0, theServer.find(':'));
+	for (char& c : aHost)
+		c = (char)tolower((unsigned char)c);
+	if (aHost == "localhost" || aHost == "127.0.0.1")
+		return "ws://" + theServer;
+	return theServer;
+}
+
 APBridge::APBridge(const std::string& theDataFolder, const std::string& theCertFile)
 {
 	mClient = NULL;
 	mState = AP_DISCONNECTED;
+	mSocketErrors = 0;
+	mSocketErrorsToReport = 1;
 	mDataFolder = theDataFolder;
 	mCertFile = theCertFile;
 }
@@ -33,14 +48,18 @@ void APBridge::Connect(const std::string& theServer, const std::string& theSlot,
 	mSlot = theSlot;
 	mPassword = thePassword;
 	mLastError.clear();
+	mSocketErrors = 0;
 
 	std::string aUuid = ap_get_uuid(mDataFolder + "ap_uuid.txt", theServer);
-	mClient = new APClient(aUuid, AP_GAME_NAME, theServer, mCertFile);
+	std::string aUri = MakeServerUri(theServer);
+	mSocketErrorsToReport = aUri.find("://") != std::string::npos ? 1 : 2;
+	mClient = new APClient(aUuid, AP_GAME_NAME, aUri, mCertFile);
 	mState = AP_SOCKET_CONNECTING;
 
 	mClient->set_socket_error_handler([this](const std::string& theError)
 	{
 		mLastError = theError;
+		mSocketErrors++;
 	});
 
 	mClient->set_socket_disconnected_handler([this]()
@@ -52,6 +71,7 @@ void APBridge::Connect(const std::string& theServer, const std::string& theSlot,
 	mClient->set_room_info_handler([this]()
 	{
 		mState = AP_SLOT_CONNECTING;
+		mSocketErrors = 0;
 		mClient->ConnectSlot(mSlot, mPassword, AP_ITEMS_HANDLING);
 	});
 
@@ -92,8 +112,7 @@ std::string APBridge::GetStatusText() const
 	switch (mState)
 	{
 	case AP_SOCKET_CONNECTING:
-		// apclientpp keeps retrying; a socket error here just means the last attempt failed.
-		if (!mLastError.empty())
+		if (mSocketErrors >= mSocketErrorsToReport)
 			return "Archipelago: can't reach " + mServer + ", retrying...";
 		return "Archipelago: connecting to " + mServer + "...";
 	case AP_SLOT_CONNECTING:
