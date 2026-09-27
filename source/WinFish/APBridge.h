@@ -58,6 +58,7 @@ namespace Sexy
 		bool ConsumeJustConnected();									// true once per successful slot login
 		void PopReceivedItems(std::vector<APReceivedItem>& theItems);
 		void PopConfirmedChecks(std::vector<int>& theLocations);	// locations the server reports as checked
+		bool IsLocationChecked(int theLocationId) const;
 		std::string GetSeed() const;									// empty until room info arrives
 
 		// Sent now if logged in; otherwise apclientpp queues checks until the next login.

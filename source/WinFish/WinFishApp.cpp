@@ -2282,6 +2282,9 @@ void Sexy::WinFishApp::UpdateArchipelago()
 
 	mAPBridge->Update();
 
+	if (!mLoaded || mTitleScreen != NULL)
+		return;
+
 	// None of this saves: the item index and outbox are written by the game's own profile saves, so they
 	// always match the progress in the save.
 	UserProfile* aProf = mCurrentProfile;
@@ -2341,6 +2344,9 @@ void Sexy::WinFishApp::UpdateArchipelago()
 void Sexy::WinFishApp::CheckArchipelagoLocation(int theLocationId)
 {
 	if (mCurrentProfile == NULL)
+		return;
+
+	if (mAPBridge != NULL && mAPBridge->IsLocationChecked(theLocationId))
 		return;
 
 	// Kept in the outbox until the server confirms it, in case the game saves and closes before then.

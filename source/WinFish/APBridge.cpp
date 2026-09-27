@@ -58,6 +58,7 @@ void APBridge::Connect(const std::string& theServer, const std::string& theSlot,
 	std::string aUri = MakeServerUri(theServer);
 	mSocketErrorsToReport = aUri.find("://") != std::string::npos ? 1 : 2;
 	mClient = new APClient(aUuid, AP_GAME_NAME, aUri, mCertFile);
+	mClient->set_receive_own_locations(true);
 	mState = AP_SOCKET_CONNECTING;
 
 	mClient->set_socket_error_handler([this](const std::string& theError)
@@ -148,6 +149,14 @@ void APBridge::PopConfirmedChecks(std::vector<int>& theLocations)
 {
 	theLocations.swap(mConfirmedChecks);
 	mConfirmedChecks.clear();
+}
+
+bool APBridge::IsLocationChecked(int theLocationId) const
+{
+	if (mClient == NULL)
+		return false;
+	std::set<int64_t> aChecked = mClient->get_checked_locations();
+	return aChecked.find(theLocationId) != aChecked.end();
 }
 
 std::string APBridge::GetSeed() const
